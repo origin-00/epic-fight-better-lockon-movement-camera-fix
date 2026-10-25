@@ -2,7 +2,8 @@ package com.lockonfix.compat;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.Input;
+import net.minecraft.client.player.ClientInput;
+import com.lockonfix.util.InputAccess;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
@@ -25,9 +26,9 @@ public final class ControllableIntegration {
      * Returns {forward, strafe} with values in [-1, 1].
      * When below the deadzone, returns {0, 0}.
      */
-    public static float[] readAnalogDirection(Input input) {
-        float forward = input.forwardImpulse;
-        float strafe  = input.leftImpulse;
+    public static float[] readAnalogDirection(ClientInput input) {
+        float forward = InputAccess.forward(input);
+        float strafe  = InputAccess.strafe(input);
 
         float magnitude = (float) Math.sqrt(forward * forward + strafe * strafe);
         if (magnitude < DEADZONE) {
@@ -41,9 +42,9 @@ public final class ControllableIntegration {
      * Analog stick magnitude, clamped to [0, 1]. Useful for scaling
      * movement speed or other magnitude-dependent behaviors.
      */
-    public static float getAnalogMagnitude(Input input) {
-        float forward = input.forwardImpulse;
-        float strafe  = input.leftImpulse;
+    public static float getAnalogMagnitude(ClientInput input) {
+        float forward = InputAccess.forward(input);
+        float strafe  = InputAccess.strafe(input);
         float mag = (float) Math.sqrt(forward * forward + strafe * strafe);
         if (mag < DEADZONE) return 0;
         return Math.min(mag, 1.0F);
@@ -65,7 +66,7 @@ public final class ControllableIntegration {
      * <p>Only after we've ruled out keyboard do we fall back to the
      * fractional-impulse heuristic for actual stick input.
      */
-    public static boolean isAnalogInput(Input input) {
+    public static boolean isAnalogInput(ClientInput input) {
         if (!IntegrationRegistry.isControllable()) return false;
         Minecraft mc = Minecraft.getInstance();
         if (mc != null && mc.options != null) {
@@ -74,7 +75,7 @@ public final class ControllableIntegration {
                 return false;
             }
         }
-        return isFractional(input.forwardImpulse) || isFractional(input.leftImpulse);
+        return isFractional(InputAccess.forward(input)) || isFractional(InputAccess.strafe(input));
     }
 
     private static boolean isFractional(float v) {
@@ -142,7 +143,7 @@ public final class ControllableIntegration {
             if (instance == null) return 0F;
             float yawDelta = cameraHandlerYawDeltaField.getFloat(instance);
             if (yawDelta == 0F) return 0F;
-            float elapsedTicks = Minecraft.getInstance().getTimer().getRealtimeDeltaTicks();
+            float elapsedTicks = Minecraft.getInstance().getDeltaTracker().getRealtimeDeltaTicks();
             return yawDelta * elapsedTicks * 0.15F;
         } catch (Throwable t) {
             return 0F;

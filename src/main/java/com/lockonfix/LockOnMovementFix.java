@@ -9,6 +9,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.slf4j.Logger;
 
@@ -17,7 +18,8 @@ public class LockOnMovementFix {
     public static final String MOD_ID = "lockonmovementfix";
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final String KEY_CATEGORY = "key.categories.lockonfix";
+    // A registered category since 1.21.9; its label is translated from key.category.lockonmovementfix.main.
+    public static final KeyMapping.Category KEY_CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
     public static KeyMapping TOGGLE_AUTO_LOCKON;
 
     public LockOnMovementFix(IEventBus modBus, ModContainer modContainer) {
@@ -34,6 +36,7 @@ public class LockOnMovementFix {
     }
 
     private void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
+        event.registerCategory(KEY_CATEGORY);
         TOGGLE_AUTO_LOCKON = new KeyMapping(
             "key.lockonfix.toggle_auto_lockon",
             InputConstants.UNKNOWN.getValue(),

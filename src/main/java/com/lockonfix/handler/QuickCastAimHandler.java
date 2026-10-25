@@ -41,7 +41,7 @@ import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
  *       skipped (lock-on already wants the body facing the target).</li>
  * </ul>
  */
-@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, value = Dist.CLIENT)
 public final class QuickCastAimHandler {
 
     private QuickCastAimHandler() {}
@@ -129,7 +129,7 @@ public final class QuickCastAimHandler {
 
         if (mc.getConnection() != null) {
             mc.getConnection().send(
-                    new ServerboundMovePlayerPacket.Rot(yaw, pitch, player.onGround()));
+                    new ServerboundMovePlayerPacket.Rot(yaw, pitch, player.onGround(), player.horizontalCollision));
         }
     }
 }

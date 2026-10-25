@@ -43,7 +43,7 @@ import java.lang.reflect.Method;
  * <p>Integrates with Epic Fight via its public camera API plus reflection
  * for the private {@code setFocusingEntity}/{@code sendTargeting} methods.
  */
-@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, value = Dist.CLIENT)
 public class AutoLockOnHandler {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -265,8 +265,8 @@ public class AutoLockOnHandler {
                 Component status = autoLockOnEnabled
                     ? Component.literal("ON").withStyle(ChatFormatting.GREEN)
                     : Component.literal("OFF").withStyle(ChatFormatting.RED);
-                MC.player.displayClientMessage(
-                    Component.literal("Auto Lock-On: ").append(status), true
+                MC.player.sendOverlayMessage(
+                    Component.literal("Auto Lock-On: ").append(status)
                 );
             }
         }
@@ -481,7 +481,7 @@ public class AutoLockOnHandler {
         LocalPlayer player, LivingEntity exclude, int flickDir, LivingEntity reference
     ) {
         double maxRange = getLockOnRange();
-        Vec3 cameraForward = new Vec3(MC.gameRenderer.getMainCamera().getLookVector());
+        Vec3 cameraForward = new Vec3(MC.gameRenderer.getMainCamera().forwardVector());
         Vec3 playerEyePos = player.getEyePosition();
 
         LivingEntity bestCandidate = null;

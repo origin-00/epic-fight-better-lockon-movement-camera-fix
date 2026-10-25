@@ -4,7 +4,8 @@ import com.lockonfix.client.EpicFightClientHooks;
 import com.lockonfix.compat.ControllableIntegration;
 import com.lockonfix.compat.IntegrationRegistry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.Input;
+import net.minecraft.client.player.ClientInput;
+import com.lockonfix.util.InputAccess;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
@@ -64,7 +65,7 @@ public abstract class DodgeSkillMixin {
         if (player == null) return;
 
         Minecraft mc = Minecraft.getInstance();
-        Input input = player.input;
+        ClientInput input = player.input;
 
         // Only defer to epicfight_extra on digital input. On controller it
         // would quantize to 8-way; we want the true 360 angle so keep going.
@@ -80,7 +81,7 @@ public abstract class DodgeSkillMixin {
         //   - Sprint/mount decouple: SSR's MixinCamera writes Camera.yRot
         //     from its decoupled internal yaw (mouse direction).
         //   - Vanilla 3rd-person: Camera.yRot follows player.yRot.
-        float cameraYaw = mc.gameRenderer.getMainCamera().getYRot();
+        float cameraYaw = mc.gameRenderer.getMainCamera().yRot();
 
         float offsetDegrees;
         int vertical;
@@ -112,11 +113,11 @@ public abstract class DodgeSkillMixin {
             // Fallback to input impulse if no keyboard keys (controller
             // without Controllable, or some other input mod)
             if (rawForward == 0 && rawStrafe == 0) {
-                if (Math.abs(input.forwardImpulse) > 0.3F) {
-                    rawForward = input.forwardImpulse > 0 ? 1 : -1;
+                if (Math.abs(InputAccess.forward(input)) > 0.3F) {
+                    rawForward = InputAccess.forward(input) > 0 ? 1 : -1;
                 }
-                if (Math.abs(input.leftImpulse) > 0.3F) {
-                    rawStrafe = input.leftImpulse > 0 ? 1 : -1;
+                if (Math.abs(InputAccess.strafe(input)) > 0.3F) {
+                    rawStrafe = InputAccess.strafe(input) > 0 ? 1 : -1;
                 }
             }
 

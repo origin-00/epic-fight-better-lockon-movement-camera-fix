@@ -9,7 +9,7 @@ import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
 
-@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, value = Dist.CLIENT)
 public final class LockOnCrosshairHandler {
 
     private LockOnCrosshairHandler() {}

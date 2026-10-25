@@ -35,3 +35,7 @@ investigation_extracted/
 raw/
 release-notes-*.md
 minimal_logo.svg
+build/
+run/
+.gradle/
+libs/*.jar

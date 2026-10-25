@@ -23,7 +23,7 @@ import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
  * bails during aim and Epic Fight's per-tick yRot correction stays in
  * effect.
  */
-@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, value = Dist.CLIENT)
 public final class EpicFightClientHooks {
 
     private static final long CAST_LATCH_MS = 500L;

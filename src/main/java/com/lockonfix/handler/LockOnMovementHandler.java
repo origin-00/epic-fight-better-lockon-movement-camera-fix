@@ -7,7 +7,8 @@ import com.lockonfix.compat.ControllableIntegration;
 import com.lockonfix.compat.IntegrationRegistry;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.Input;
+import net.minecraft.client.player.ClientInput;
+import com.lockonfix.util.InputAccess;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -29,7 +30,7 @@ import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerP
  * {@code smoothedYRot} independent of what EF writes and re-apply it in both
  * {@code MovementInputUpdateEvent} and {@code PlayerTickEvent.Post}.
  */
-@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LockOnMovementFix.MOD_ID, value = Dist.CLIENT)
 public class LockOnMovementHandler {
 
     private static final Minecraft MC = Minecraft.getInstance();
@@ -107,7 +108,7 @@ public class LockOnMovementHandler {
                 || EpicFightClientHooks.isAiming(player);
     }
 
-    private static float[] readDirectionalInput(Input input) {
+    private static float[] readDirectionalInput(ClientInput input) {
         float rawForward = 0;
         if (MC.options.keyUp.isDown()) rawForward += 1.0F;
         if (MC.options.keyDown.isDown()) rawForward -= 1.0F;
@@ -116,7 +117,7 @@ public class LockOnMovementHandler {
         if (MC.options.keyLeft.isDown()) rawStrafe += 1.0F;
         if (MC.options.keyRight.isDown()) rawStrafe -= 1.0F;
 
-        // Controllable updates input.forwardImpulse/leftImpulse but not the
+        // Controllable updates InputAccess.forward(input)/leftImpulse but not the
         // keyboard isDown() states, so the analog fallback fires correctly
         // when on controller.
         if (rawForward == 0 && rawStrafe == 0) {
@@ -176,7 +177,7 @@ public class LockOnMovementHandler {
         boolean isFirstPerson = MC.options.getCameraType() == CameraType.FIRST_PERSON;
         if (isFirstPerson) {
             wasLockedOn = true;
-            Input fpInput = event.getInput();
+            ClientInput fpInput = event.getInput();
 
             if (IntegrationRegistry.isBetterLockOn()) {
                 // 1ST PERSON LOCK-ON
@@ -230,10 +231,10 @@ public class LockOnMovementHandler {
                     // travel() sprints along movementYaw regardless of which
                     // key was held. min(raw, mod) preserves earlier handlers'
                     // magnitude shrinks (e.g. Iron's Spells cast-time slowdown).
-                    float modMagnitude = Mth.sqrt(fpInput.forwardImpulse * fpInput.forwardImpulse
-                            + fpInput.leftImpulse * fpInput.leftImpulse);
-                    fpInput.forwardImpulse = Math.min(rawMagnitude, modMagnitude);
-                    fpInput.leftImpulse = 0F;
+                    float modMagnitude = Mth.sqrt(InputAccess.forward(fpInput) * InputAccess.forward(fpInput)
+                            + InputAccess.strafe(fpInput) * InputAccess.strafe(fpInput));
+                    InputAccess.setForward(fpInput, Math.min(rawMagnitude, modMagnitude));
+                    InputAccess.setStrafe(fpInput, 0F);
                 } else {
                     // Walk / idle path: just restore raw input. Don't touch
                     // yRot -- it stays at whatever turnPlayer + setupCamera
@@ -241,23 +242,23 @@ public class LockOnMovementHandler {
                     // travel interprets WASD relative to that: W=toward,
                     // S=away, A=strafe-left, D=strafe-right.
                     if (isMoving) {
-                        float modMagnitude = Mth.sqrt(fpInput.forwardImpulse * fpInput.forwardImpulse
-                                + fpInput.leftImpulse * fpInput.leftImpulse);
+                        float modMagnitude = Mth.sqrt(InputAccess.forward(fpInput) * InputAccess.forward(fpInput)
+                                + InputAccess.strafe(fpInput) * InputAccess.strafe(fpInput));
                         float magnitude = Math.min(rawMagnitude, modMagnitude);
                         float scale = magnitude / rawMagnitude;
-                        fpInput.forwardImpulse = rawForward * scale;
-                        fpInput.leftImpulse = rawStrafe * scale;
+                        InputAccess.setForward(fpInput, rawForward * scale);
+                        InputAccess.setStrafe(fpInput, rawStrafe * scale);
                     } else {
-                        fpInput.forwardImpulse = 0F;
-                        fpInput.leftImpulse = 0F;
+                        InputAccess.setForward(fpInput, 0F);
+                        InputAccess.setStrafe(fpInput, 0F);
                     }
                 }
 
                 float dz = 0.3F;
-                fpInput.up    = rawForward >  dz;
-                fpInput.down  = rawForward < -dz;
-                fpInput.left  = rawStrafe  >  dz;
-                fpInput.right = rawStrafe  < -dz;
+                InputAccess.setUp(fpInput, rawForward >  dz);
+                InputAccess.setDown(fpInput, rawForward < -dz);
+                InputAccess.setLeft(fpInput, rawStrafe  >  dz);
+                InputAccess.setRight(fpInput, rawStrafe  < -dz);
             }
             return;
         }
@@ -272,7 +273,7 @@ public class LockOnMovementHandler {
         }
 
         wasLockedOn = true;
-        Input input = event.getInput();
+        ClientInput input = event.getInput();
 
         if (Float.isNaN(smoothedYRot)) {
             smoothedYRot = player.getYRot();
@@ -296,26 +297,26 @@ public class LockOnMovementHandler {
             // Preserve magnitude shrinks applied by earlier handlers (Iron's
             // Spells multiplies impulses by ~0.2 during a cast). Using
             // rawMagnitude alone would skip that slowdown.
-            float modMagnitude = Mth.sqrt(input.forwardImpulse * input.forwardImpulse
-                    + input.leftImpulse * input.leftImpulse);
+            float modMagnitude = Mth.sqrt(InputAccess.forward(input) * InputAccess.forward(input)
+                    + InputAccess.strafe(input) * InputAccess.strafe(input));
             float magnitude = Math.min(rawMagnitude, modMagnitude);
 
             if (magnitude > 0.01F) {
                 float offsetAngle = -(float) Math.toDegrees(Math.atan2(rawStrafe, rawForward));
                 float worldMoveYaw = Mth.wrapDegrees(targetYaw + offsetAngle);
                 float thetaRad = (float) Math.toRadians(Mth.wrapDegrees(worldMoveYaw - smoothedYRot));
-                input.forwardImpulse = magnitude * Mth.cos(thetaRad);
-                input.leftImpulse = -magnitude * Mth.sin(thetaRad);
+                InputAccess.setForward(input, magnitude * Mth.cos(thetaRad));
+                InputAccess.setStrafe(input, -magnitude * Mth.sin(thetaRad));
             } else {
-                input.forwardImpulse = 0F;
-                input.leftImpulse = 0F;
+                InputAccess.setForward(input, 0F);
+                InputAccess.setStrafe(input, 0F);
             }
 
             float dz = 0.3F;
-            input.up    = rawForward >  dz;
-            input.down  = rawForward < -dz;
-            input.left  = rawStrafe  >  dz;
-            input.right = rawStrafe  < -dz;
+            InputAccess.setUp(input, rawForward >  dz);
+            InputAccess.setDown(input, rawForward < -dz);
+            InputAccess.setLeft(input, rawStrafe  >  dz);
+            InputAccess.setRight(input, rawStrafe  < -dz);
             return;
         }
 
@@ -328,12 +329,12 @@ public class LockOnMovementHandler {
         }
 
         if (isMovementLocked(player)) {
-            input.forwardImpulse = 0;
-            input.leftImpulse = 0;
-            input.up = false;
-            input.down = false;
-            input.left = false;
-            input.right = false;
+            InputAccess.setForward(input, 0);
+            InputAccess.setStrafe(input, 0);
+            InputAccess.setUp(input, false);
+            InputAccess.setDown(input, false);
+            InputAccess.setLeft(input, false);
+            InputAccess.setRight(input, false);
             return;
         }
 
@@ -353,16 +354,16 @@ public class LockOnMovementHandler {
             player.setYRot(smoothedYRot);
 
             float magnitude = Mth.sqrt(rawForward * rawForward + rawStrafe * rawStrafe);
-            float speed = input.shiftKeyDown ? magnitude * 0.3F : magnitude;
+            float speed = InputAccess.shift(input) ? magnitude * 0.3F : magnitude;
 
-            input.forwardImpulse = speed;
-            input.leftImpulse = 0;
+            InputAccess.setForward(input, speed);
+            InputAccess.setStrafe(input, 0);
 
             float dz = 0.3F;
-            input.up    = rawForward >  dz;
-            input.down  = rawForward < -dz;
-            input.left  = rawStrafe  >  dz;
-            input.right = rawStrafe  < -dz;
+            InputAccess.setUp(input, rawForward >  dz);
+            InputAccess.setDown(input, rawForward < -dz);
+            InputAccess.setLeft(input, rawStrafe  >  dz);
+            InputAccess.setRight(input, rawStrafe  < -dz);
 
         } else {
             if (getAutoFaceTarget()) {
@@ -372,12 +373,12 @@ public class LockOnMovementHandler {
 
             player.setYRot(smoothedYRot);
 
-            input.forwardImpulse = 0;
-            input.leftImpulse = 0;
-            input.up = false;
-            input.down = false;
-            input.left = false;
-            input.right = false;
+            InputAccess.setForward(input, 0);
+            InputAccess.setStrafe(input, 0);
+            InputAccess.setUp(input, false);
+            InputAccess.setDown(input, false);
+            InputAccess.setLeft(input, false);
+            InputAccess.setRight(input, false);
         }
 
         player.yBodyRot = player.getYRot();
